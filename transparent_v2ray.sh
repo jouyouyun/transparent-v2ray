@@ -18,12 +18,12 @@ readonly IPV4_RESERVED_IPADDRS=(
     224.0.0.0/4
     240.0.0.0/4
     255.255.255.255/32
-)
-
-readonly IPV4_LOCAL_IPADDS=(
     10.0.0.0/8
     172.16.0.0/12
     192.168.0.0/16
+)
+
+readonly IPV4_LOCAL_IPADDS=(
 )
 
 log_debug() {
@@ -63,7 +63,7 @@ check_dependencies() {
         ping
         nslookup
         jq
-        curl
+        wget
         perl
         base64
         sysctl
@@ -78,17 +78,13 @@ check_dependencies() {
     done
 }
 
-update_geoip() {
-    echo "Start update geoip"
-}
-
-update_geosite() {
-    echo "Start update geosite"
-}
-
 update_geodb() {
-    update_geoip
-    update_geosite
+    echo "Start update geodb"
+    wget https://github.com/v2ray/geoip/raw/release/geoip.dat -O /tmp/geoip.dat || log_error "failed to download geoip"
+    cp -f /tmp/geoip.dat $FILE_GEOIP
+
+    wget https://github.com/v2fly/domain-list-community/raw/release/dlc.dat -O /tmp/geosite.dat || log_error "failed to download geosite"
+    cp -f /tmp/geosite.dat  $FILE_GEOSITE
 }
 
 reroute_ip_list() {
@@ -128,9 +124,9 @@ start_transparent_proxy() {
 	iptables -t mangle -N V2RAY
     reroute_ip_list "mangle" "V2RAY"
     # 给 UDP 打标记 1，转发至 $LOCAL_PORT 端口
-	iptables -t mangle -A V2RAY -p udp -j TPROXY --on-port $LOCAL_PORT --tproxy-mark 1
+	iptables -t mangle -A V2RAY -p udp -j TPROXY --on-port $LOCAL_PORT --tproxy-mark 0x1/0xff
     # 给 TCP 打标记 1，转发至 $LOCAL_PORT 端口
-	iptables -t mangle -A V2RAY -p tcp -j TPROXY --on-port $LOCAL_PORT --tproxy-mark 1 
+	iptables -t mangle -A V2RAY -p tcp -j TPROXY --on-port $LOCAL_PORT --tproxy-mark 0x1/0xff
 	iptables -t mangle -A PREROUTING -j V2RAY # 应用规则
 	
 	# 代理网关本机
