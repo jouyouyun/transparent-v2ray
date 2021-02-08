@@ -1,0 +1,6 @@
+{
+    "server": "simple.domain.com",
+    "proxy_start": "systemctl start v2ray@server",
+    "proxy_stop": "systemctl stop v2ray@server",
+    "local_port": 1080
+}
