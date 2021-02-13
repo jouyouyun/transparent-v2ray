@@ -1,12 +1,10 @@
 [Unit]
-Description=Tproxy rule
+Description=Transparant V2ray Proxy
 After=network.target
 Wants=network.target
 
 [Service]
-
 Type=oneshot
-#注意分号前后要有空格
 ExecStart=/usr/local/bin/transparent_v2ray start
 ExecStop=/usr/local/bin/transparent_v2ray stop
 

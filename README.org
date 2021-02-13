@@ -75,6 +75,152 @@
 
 再此做个记录，仅包含使用 =TPROXY= 的方式。
 
+** 依赖
+
++ [X] =v2ray:= 到 [[https://github.com/v2ray/v2ray-core/releases][Release]] 页面下载最新版本，然后安装
++ [X] =wget=
++ [X] =bind9-dnsutils:= 安装 =nslookup=
++ [X] =jp=
++ [X] =iptables=
++ [X] =procps:= 安装 =sysctl=
++ [ ] =net-tools:= 可选，安装 =netstat=
+
+** 安装
+
+#+begin_src shell
+# 拷贝配置文件
+sudo mkdir -p /etc/transparent-v2ray
+sudo cp ./simple/config.json /etc/transparent-v2ray/
+# 拷贝 v2ray 配置文件
+sudo mkdir -p /etc/v2ray
+sudo cp ./simple/v2ray.json /etc/v2ray/
+
+# 拷贝 service 文件
+sudo cp ./simple/v2ray@.service /lib/systemd/system/
+sudo cp ./simple/transparent_v2ray.service /lib/systemd/system/
+sudo systemctl daemon-reload
+
+# 拷贝主脚本
+sudo cp ./transparent_v2ray.sh /usr/local/bin/transparent_v2ray
+sudo chmod +x /usr/local/bin/transparent_v2ray
+#+end_src
+
+完成上述文件安装后，根据实际配置修改 =/etc/v2ray/v2ray.json= 和 =/etc/transparent-v2ray/config.json= 文件。
+然后执行 =sudo systemctl start transparent_v2ray.service= 进行测试，如果一切正常则执行 =sudo systemctl enable transparent_v2ray.service= 设置开机自启。如果运行结果异常，请自行检查配置。
+
+** 使用
+
++ =sudo transparent_v2ray start:= 启动服务
++ =sudo transparent_v2ray stop:= 停止服务
++ =sudo transparent_v2ray restart:= 重启服务
++ =sudo transparent_v2ray update-geoip:= 更新 =geoip.dat= 和 =geosite.dat=
+
 ** 配置说明
 
-** 代理规则
+*** Tranparent Proxy Config
+
+透明代理的配置文件比较简单，这里介绍下：
+
++ =server:= 代理服务器域名或地址
++ =proxy_start:= 透明代理启动命令
++ =proxy_stop:= 透明代理关闭命令
++ =local_port:= 透明代理本地监听端口
+
+*** V2ray Proxy Config
+
+**** inbounds
+
+在流量来源 =inbounds= 里，主要需要添加 =protocol= 为 =dokodemo-door= 段，这段设置了透明代理的端口、代理方式、网络协议等内容。
+
+特别需要注意的是 =followRedirect= 必须为 =true= ， =tpoxy= 的值必须为 =tproxy= ，另外建议开启 =sniffing= 的设置，路由无法匹配域名。
+
+示例配置如下：
+
+#+begin_src json
+        {
+            "port": 1083,
+            "tag": "transparent",
+            "protocol": "dokodemo-door",
+            "settings": {
+                "network": "tcp,udp",
+                "followRedirect": true
+            },
+            "sniffing": {
+                "enabled": true,
+                "destOverride": ["http", "tls"]
+            },
+            "streamSettings": {
+                "sockopt": {
+                    "tproxy": "tproxy"
+                }
+            }
+        }
+#+end_src
+
+**** outbounds
+
+=outbounds= 主要配置流量出口方式，这里配置了四种，分别是：
+
++ =vmess:= 填写代理服务器的配置信息， =v2ray.json= 中是 =ws= 的示例配置
++ =freedom:= 直连的配置，通过 =ip= 进行区分
++ =blackhole:= 屏蔽广告的配置，针对 =http= 类型的流量
++ =dns:= =dns= 出口配置
+
+**** dns
+
+=dns= 主要配置 =dns= 查询规则，这里国内使用 =225.5.5.5= 和 =114.114.114.114= 查询，国外使用 =8.8.8.8= 和 =1.1.1.1= 进行查询。
+
+另外对 =223.5.5.5= 进行了特殊配置， =geosite:cn= 和 =ntp.org= 会优先使用
+
+**** routing
+
+=routing= 配置了路由规则，主要是国内、国外流量的设置，如下：
+
++ =port: 53=
+
+  这是 =dns= 端口，转发到 =dns-out=
+
++ =port: 123=
+
+  这是 =ntp= 端口，直接访问，不做代理。这是为了保证 =ntp= 服务能够正常，避免因时间误差大导致服务端拒绝连接
+
++ =ip=
+
+  两个 =ip= 段的配置，分别指定了域名解析服务的访问方式，国内的直连，国外的代理
+
++ =category-ads-all=
+
+  设置了广告的访问方式，转发到 =block=
+
++ =bittorrent=
+
+  设置了 =bt= 链接的访问方式，直连
+
++ =geoip=
+
+  =private= 和 =cn= 的 =ip= 走直连
+
++ =geosite=
+
+  =cn= 国内域名走直连
+
+** 系统规则配置
+
+通过 =iptables= 配置系统的访问规则，默认是 =tcp= 和 =udp= 一起代理。
+
+=start_transparent_proxy= 函数开启代理， =stop_transparent_proxy= 函数则关闭代理， =check_environment= 函数检查运行条件是否满足。
+
+其它细节请直接阅读 [[./transparent_v2ray.sh]] 文件。
+
+** 代理服务器
+
+*** 依赖
+
++ =haveged:= 随机数服务
++ =v2ray:= 查看上文
++ =caddy:= 反向代理，从 [[https://caddyserver.com/download]] 下载合适的版本，根据自己域名的 =dns= 服务商决定，如 =aliyun= 则应该下载 =github.com/caddy-dns/lego-deprecated=
+
+*** 配置
+
++ =v2ray:= 配置参见 [[./simple/v2ray_server.json]] ，是一个 =ws= 的配置
++ =caddy:= 配置参见 [[./simple/Caddyfile]]

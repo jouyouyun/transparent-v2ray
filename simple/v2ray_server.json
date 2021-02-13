@@ -1,0 +1,28 @@
+{
+    "log":{"loglevel":"warning"},
+    "inbounds": [{
+        "port": 10086,
+        "listen": "127.0.0.1",
+        "protocol": "vmess",
+        "streamSettings":{
+            "network": "ws",
+            "wsSettings": {
+                "path": "/icc"
+            }
+        },
+        "settings": {
+            "clients": [
+	            {
+                    "id": "xxxxxxxx",
+	                "level": 1,
+                    "alterId": 64
+	            }
+            ]
+        }
+    }],
+    "outbounds": [{
+        "protocol": "freedom",
+        "settings": {}
+    }]
+}
+

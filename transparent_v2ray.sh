@@ -60,16 +60,11 @@ is_file_exists() {
 
 check_dependencies() {
     readonly dependencies=(
-        ping
         nslookup
         jq
         wget
-        perl
-        base64
         sysctl
-        ipset
         iptables
-        netstat
     )
 
     for cmd in ${dependencies[*]}
@@ -143,6 +138,9 @@ start_transparent_proxy() {
 }
 
 stop_transparent_proxy() {
+	ip route del local 0.0.0.0/0 dev lo table 100
+	ip rule del fwmark 1 table 100
+
     iptables -t mangle -D OUTPUT -j V2RAY_MASK
     iptables -t mangle -F V2RAY_MASK
     iptables -t mangle -X V2RAY_MASK
@@ -194,6 +192,7 @@ check_environment
 case "$1" in
     start) start_transparent_proxy;;
     stop) stop_transparent_proxy;;
+    restart) stop_transparent_proxy && start_transparent_proxy;;
     update-geodb) update_geodb;;
     *) log_info "Unknown command: $1";;
 esac
