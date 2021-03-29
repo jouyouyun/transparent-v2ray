@@ -84,7 +84,8 @@ update_geodb() {
 
 reroute_ip_list() {
     # skip server ip
-    if [[ $SERVER_IP =~ "127."* ]]; then
+    tmp_list=(${SERVER_IP//./ })
+    if [[ ${tmp_list[0]} = "127" ]]; then
         log_info "Skipping local address: $SERVER_IP"
     else
         iptables -t $1 -A $2 -d $SERVER_IP -j RETURN
@@ -187,10 +188,8 @@ check_environment() {
     log_info "$SERVER: $SERVER_IP"
 }
 
-check_environment
-
 case "$1" in
-    start) start_transparent_proxy;;
+    start) check_environment && start_transparent_proxy;;
     stop) stop_transparent_proxy;;
     restart) stop_transparent_proxy && start_transparent_proxy;;
     update-geodb) update_geodb;;
