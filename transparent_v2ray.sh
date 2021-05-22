@@ -139,6 +139,8 @@ start_transparent_proxy() {
 }
 
 stop_transparent_proxy() {
+	parse_config
+
 	ip route del local 0.0.0.0/0 dev lo table 100
 	ip rule del fwmark 1 table 100
 
@@ -177,12 +179,11 @@ check_environment() {
     is_file_exists $FILE_GEOIP "GEOIP PATH"
     is_file_exists $FILE_GEOSITE "GEOSITE PATH"
 
-    parse_config
-    
     if [ `id -u` != "0" ]; then
         log_error "MUST BE RUN AS ROOT"
     fi
 
+    parse_config
 
     is_ipv4_address "$SERVER" && SERVER_IP="$SERVER" || SERVER_IP=$(nslookup_domain "$SERVER")
     log_info "$SERVER: $SERVER_IP"
