@@ -176,8 +176,8 @@ check_environment() {
     check_dependencies
 
     is_file_exists $FILE_CONFIG "CONFIG PATH"
-    is_file_exists $FILE_GEOIP "GEOIP PATH"
-    is_file_exists $FILE_GEOSITE "GEOSITE PATH"
+    #is_file_exists $FILE_GEOIP "GEOIP PATH"
+    #is_file_exists $FILE_GEOSITE "GEOSITE PATH"
 
     if [ `id -u` != "0" ]; then
         log_error "MUST BE RUN AS ROOT"
