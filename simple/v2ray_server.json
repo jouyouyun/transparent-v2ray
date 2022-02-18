@@ -1,28 +1,35 @@
 {
-    "log":{"loglevel":"warning"},
-    "inbounds": [{
-        "port": 10086,
-        "listen": "127.0.0.1",
-        "protocol": "vmess",
-        "streamSettings":{
-            "network": "ws",
-            "wsSettings": {
-                "path": "/icc"
-            }
-        },
-        "settings": {
-            "clients": [
-	            {
-                    "id": "xxxxxxxx",
-	                "level": 1,
-                    "alterId": 64
-	            }
-            ]
+  "log": {
+    "loglevel": "error"
+  },
+  "inbounds": [
+    {
+      "port": 10010,
+      "listen": "127.0.0.1",
+      "protocol": "vmess",
+      "streamSettings": {
+        "network": "ws",
+        "wsSettings": {
+          "path": "/xxx"
         }
-    }],
-    "outbounds": [{
-        "protocol": "freedom",
-        "settings": {}
-    }]
+      },
+      "settings": {
+        "clients": [
+          {
+            "id": "xxx",
+            "level": 1,
+            "alterId": 0
+          }
+        ]
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "protocol": "freedom",
+      "settings": {
+      }
+    }
+  ]
 }
 
