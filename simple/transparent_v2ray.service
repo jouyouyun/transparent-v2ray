@@ -4,7 +4,7 @@ After=network.target
 Wants=network.target
 
 [Service]
-Type=oneshot
+Type=forking
 ExecStart=/usr/local/bin/transparent_v2ray start
 ExecStop=/usr/local/bin/transparent_v2ray stop
 

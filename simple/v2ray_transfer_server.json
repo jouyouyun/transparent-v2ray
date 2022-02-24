@@ -1,0 +1,70 @@
+{
+  "log": {
+    "loglevel": "error"
+  },
+  "inbounds": [
+    {
+      "port": 1080,
+      "protocol": "vmess",
+      "settings": {
+        "clients": [
+          {
+            "id": "xxx",
+            "alterId": 0
+          }
+        ]
+      },
+      "streamSettings": {
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "protocol": "vmess",
+      "settings": {
+        "vnext": [
+          {
+            "users": [
+              {
+                "alterId": 0,
+                "id": "xxx"
+              }
+            ],
+            "port": 0,
+            "address": "xxx"
+          }
+        ]
+      },
+      "streamSettings": {
+        "mux": {
+          "enabled": true
+        },
+        "network": "ws",
+        "security": "tls",
+        "wsSettings": {
+          "path": "xxx"
+        }
+      }
+    },
+  ],
+  "dns": {
+    "servers": [
+      {
+        "address": "223.5.5.5",
+        "port": 53,
+        "domains": [
+          "github.io",
+          "github.com",
+          "githubusercontent.com",
+          "raw.githubusercontent.com"
+        ],
+        "exceptIPs": [
+          "geoip:cn"
+        ]
+      },
+      "1.1.1.1",
+      "114.114.114.114",
+      "localhost"
+    ]
+  }
+}
