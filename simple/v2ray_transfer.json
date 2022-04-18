@@ -103,7 +103,7 @@
         ]
     },
     "routing": {
-        "domainStrategy": "IPOnDemand",
+        "domainStrategy": "IPIfNonMatch",
         "rules": [
             {
             "type": "field",
