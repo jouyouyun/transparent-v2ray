@@ -69,9 +69,9 @@
 #+LATEX_HEADER: % Generate PDF: xelatex -shell-escape <tex file>
 #+AUTHOR: jouyouyun
 #+EMAIL: yanbowen717@gmail.com
-#+TITLE: V2RAY 透明代理
+#+TITLE: 透明代理
 
-来自官方文档，详见： [[透明代理(TPROXY)][https://toutyrater.github.io/app/tproxy.html]]
+本文是参考 V2RAY 官方文档进行编写的，详见： [[透明代理(TPROXY)][https://toutyrater.github.io/app/tproxy.html]]
 
 再此做个记录，仅包含使用 =TPROXY= 的方式。
 
@@ -84,20 +84,26 @@
 + [X] =iptables=
 + [X] =procps:= 安装 =sysctl=
 + [ ] =net-tools:= 可选，安装 =netstat=
++ [ ] =clash= 到 [[ttps://github.com/Dreamacro/clash/releases][Release]] 页面进行下载
+
+  安装到 =/usr/local/bin=
++ [ ] =clash country db= 到 [[https://github.com/Dreamacro/maxmind-geoip/releases][Release]] 页面进行下载
+
+  安装到 =/usr/local/etc/clash=
 
 ** 安装
 
 #+begin_src shell
 # 拷贝配置文件
 sudo mkdir -p /etc/transparent-v2ray
-sudo cp ./simple/config.json /etc/transparent-v2ray/
+sudo cp ./simple/etc-transparent-v2ray/config.json /etc/transparent-v2ray/
 # 拷贝 v2ray 配置文件
 sudo mkdir -p /etc/v2ray
-sudo cp ./simple/v2ray.json /etc/v2ray/
+sudo cp ./simple/etc-2ray.client/v2ray.json /etc/v2ray/
 
 # 拷贝 service 文件
-sudo cp ./simple/v2ray@.service /lib/systemd/system/
-sudo cp ./simple/transparent_v2ray.service /lib/systemd/system/
+sudo cp ./simple/systemd-service/v2ray@.service /lib/systemd/system/
+sudo cp ./simple/systemd-service/transparent_v2ray.service /lib/systemd/system/
 sudo systemctl daemon-reload
 
 # 拷贝主脚本
@@ -113,7 +119,7 @@ sudo chmod +x /usr/local/bin/transparent_v2ray
 + =sudo transparent_v2ray start:= 启动服务
 + =sudo transparent_v2ray stop:= 停止服务
 + =sudo transparent_v2ray restart:= 重启服务
-+ =sudo transparent_v2ray update-geoip:= 更新 =geoip.dat= 和 =geosite.dat=
++ =sudo transparent_v2ray update-v2ray-geoip:= 更新 =v2ray= 的 =geoip.dat= 和 =geosite.dat=
 
 ** 配置说明
 
@@ -222,6 +228,264 @@ sudo chmod +x /usr/local/bin/transparent_v2ray
 
   =cn= 国内域名走直连
 
+*** clash 配置
+参考：[[https://github.com/Dreamacro/clash/wiki/configuration][Clash Configuration]] ，这里给出两个例子：
+
+**** 自定义节点
+#+begin_src yaml
+tproxy-port: 7893
+
+# Set to true to allow connections to the local-end server from
+# other LAN IP addresses
+allow-lan: false
+
+# This is only applicable when `allow-lan` is `true`
+# '*': bind all IP addresses
+# 192.168.122.11: bind a single IPv4 address
+# "[aaaa::a8aa:ff:fe09:57d8]": bind a single IPv6 address
+bind-address: '*'
+
+# Clash router working mode
+# rule: rule-based packet routing
+# global: all packets will be forwarded to a single endpoint
+# direct: directly forward the packets to the Internet
+mode: rule
+
+# Clash by default prints logs to STDOUT
+# info / warning / error / debug / silent
+log-level: error
+
+# When set to false, resolver won't translate hostnames to IPv6 addresses
+ipv6: false
+
+# fwmark on Linux only
+routing-mark: 255
+
+profile:
+  # Store the `select` results in $HOME/.config/clash/.cache
+  # set false If you don't want this behavior
+  # when two different configurations have groups with the same name, the selected values are shared
+  store-selected: false
+
+  # persistence fakeip
+  store-fake-ip: true
+
+# DNS server settings
+# This section is optional. When not present, the DNS server will be disabled.
+dns:
+  enable: false
+  listen: 0.0.0.0:53
+  # ipv6: false # when the false, response to AAAA questions will be empty
+
+  # These nameservers are used to resolve the DNS nameserver hostnames below.
+  # Specify IP addresses only
+  default-nameserver:
+    - 114.114.114.114
+    - 8.8.8.8
+  enhanced-mode: fake-ip # or redir-host (not recommended)
+  fake-ip-range: 198.18.0.1/16 # Fake IP addresses pool CIDR
+  # use-hosts: true # lookup hosts and return IP record
+
+  # Hostnames in this list will not be resolved with fake IPs
+  # i.e. questions to these domain names will always be answered with their
+  # real IP addresses
+  # fake-ip-filter:
+  #   - '*.lan'
+  #   - localhost.ptlogin2.qq.com
+
+  # Supports UDP, TCP, DoT, DoH. You can specify the port to connect to.
+  # All DNS questions are sent directly to the nameserver, without proxies
+  # involved. Clash answers the DNS question with the first result gathered.
+  nameserver:
+    - 114.114.114.114 # default value
+    - 8.8.8.8 # default value
+    - tls://dns.rubyfish.cn:853 # DNS over TLS
+    - https://1.1.1.1/dns-query # DNS over HTTPS
+    - dhcp://en0 # dns from dhcp
+    # - '8.8.8.8#en0'
+
+proxies:
+  - name: "ss"
+    type: ss
+    server: server
+    port: 443
+    cipher: chacha20-ietf-poly1305
+    password: "password"
+    plugin: v2ray-plugin
+    plugin-opts:
+      mode: websocket # no QUIC now
+      # tls: true # wss
+      # skip-cert-verify: true
+      # host: bing.com
+      # path: "/"
+      # mux: true
+      # headers:
+      #   custom: value
+
+  # vmess
+  # cipher support auto/aes-128-gcm/chacha20-poly1305/none
+  - name: "vmess"
+    type: vmess
+    server: server
+    port: 443
+    uuid: uuid
+    alterId: 32
+    cipher: auto
+    # udp: true
+    tls: true
+    # skip-cert-verify: true
+    # servername: example.com # priority over wss host
+    network: ws
+    ws-opts:
+      path: /path
+    #   headers:
+    #     Host: v2ray.com
+    #   max-early-data: 2048
+    #   early-data-header-name: Sec-WebSocket-Protocol
+
+proxy-groups:
+  # url-test select which proxy will be used by benchmarking speed to a URL.
+  - name: "auto"
+    type: fallback
+    proxies:
+      - ss
+      - vmess
+    # tolerance: 150
+    # lazy: true
+    url: 'http://www.gstatic.com/generate_204'
+    interval: 300
+
+rules:
+  - DOMAIN-SUFFIX,google.com,auto
+  - DOMAIN-KEYWORD,google,auto
+  - DOMAIN,google.com,auto
+  - DOMAIN-SUFFIX,github.io,auto
+  - DOMAIN-SUFFIX,github.com,auto
+  - DOMAIN-KEYWORD,github,auto
+  - DOMAIN,github.com,auto
+  - DOMAIN-SUFFIX,ad.com,REJECT
+  - SRC-IP-CIDR,192.168.1.201/32,DIRECT
+  # optional param "no-resolve" for IP rules (GEOIP, IP-CIDR, IP-CIDR6)
+  - IP-CIDR,127.0.0.0/8,DIRECT
+  - GEOIP,CN,DIRECT
+  - DST-PORT,80,DIRECT
+  - SRC-PORT,7777,DIRECT
+  - MATCH,auto
+#+end_src
+
+**** 订阅链接
+#+begin_src yaml
+tproxy-port: 7893
+
+# Set to true to allow connections to the local-end server from
+# other LAN IP addresses
+allow-lan: false
+
+# This is only applicable when `allow-lan` is `true`
+# '*': bind all IP addresses
+# 192.168.122.11: bind a single IPv4 address
+# "[aaaa::a8aa:ff:fe09:57d8]": bind a single IPv6 address
+bind-address: '*'
+
+# Clash router working mode
+# rule: rule-based packet routing
+# global: all packets will be forwarded to a single endpoint
+# direct: directly forward the packets to the Internet
+mode: rule
+
+# Clash by default prints logs to STDOUT
+# info / warning / error / debug / silent
+log-level: info
+
+# When set to false, resolver won't translate hostnames to IPv6 addresses
+ipv6: false
+
+# fwmark on Linux only
+routing-mark: 255
+
+profile:
+  # Store the `select` results in $HOME/.config/clash/.cache
+  # set false If you don't want this behavior
+  # when two different configurations have groups with the same name, the selected values are shared
+  store-selected: false
+
+  # persistence fakeip
+  store-fake-ip: true
+
+# DNS server settings
+# This section is optional. When not present, the DNS server will be disabled.
+dns:
+  enable: false
+  listen: 0.0.0.0:53
+  # ipv6: false # when the false, response to AAAA questions will be empty
+
+  # These nameservers are used to resolve the DNS nameserver hostnames below.
+  # Specify IP addresses only
+  default-nameserver:
+    - 114.114.114.114
+    - 8.8.8.8
+  enhanced-mode: fake-ip # or redir-host (not recommended)
+  fake-ip-range: 198.18.0.1/16 # Fake IP addresses pool CIDR
+  # use-hosts: true # lookup hosts and return IP record
+
+  # Hostnames in this list will not be resolved with fake IPs
+  # i.e. questions to these domain names will always be answered with their
+  # real IP addresses
+  # fake-ip-filter:
+  #   - '*.lan'
+  #   - localhost.ptlogin2.qq.com
+
+  # Supports UDP, TCP, DoT, DoH. You can specify the port to connect to.
+  # All DNS questions are sent directly to the nameserver, without proxies
+  # involved. Clash answers the DNS question with the first result gathered.
+  nameserver:
+    - 114.114.114.114 # default value
+    - 8.8.8.8 # default value
+    - tls://dns.rubyfish.cn:853 # DNS over TLS
+    - https://1.1.1.1/dns-query # DNS over HTTPS
+    - dhcp://en0 # dns from dhcp
+    # - '8.8.8.8#en0'
+
+proxy-providers:
+  provider1:
+    type: http
+    # 使用 Proxy Provider Converter 转换订阅链接
+    # 如：https://proxy-provider-converter-iota-cyan.vercel.app
+    url: "url"
+    interval: 3600
+    path: ./provider1.yaml
+    health-check:
+      enable: true
+      interval: 600
+      # lazy: true
+      url: http://www.gstatic.com/generate_204
+
+proxy-groups:
+  - name: PROXY
+    type: select
+    use:
+      - provider1
+    proxies:
+      - DIRECT
+
+rules:
+  - DOMAIN-SUFFIX,google.com,PROXY
+  - DOMAIN-KEYWORD,google,PROXY
+  - DOMAIN,google.com,PROXY
+  - DOMAIN-SUFFIX,github.io,PROXY
+  - DOMAIN-SUFFIX,github.com,PROXY
+  - DOMAIN-KEYWORD,github,PROXY
+  - DOMAIN,github.com,PROXY
+  - DOMAIN-SUFFIX,ad.com,REJECT
+  - SRC-IP-CIDR,192.168.1.201/32,DIRECT
+  # optional param "no-resolve" for IP rules (GEOIP, IP-CIDR, IP-CIDR6)
+  - IP-CIDR,127.0.0.0/8,DIRECT
+  - GEOIP,CN,DIRECT
+  - DST-PORT,80,DIRECT
+  - SRC-PORT,7777,DIRECT
+  - MATCH,PROXY
+#+end_src
+
 ** 系统规则配置
 
 通过 =iptables= 配置系统的访问规则，默认是 =tcp= 和 =udp= 一起代理。
@@ -242,3 +506,9 @@ sudo chmod +x /usr/local/bin/transparent_v2ray
 
 + =v2ray:= 配置参见 [[./simple/v2ray_server.json]] ，是一个 =ws= 的配置
 + =caddy:= 配置参见 [[./simple/Caddyfile]]
+
+** 参考链接
++ [[https://codeswift.top/posts/clash-linux/][在 Linux 中使用 Clash]]
++ [[https://www.920.im/clash-proxy-providers-configuration/][Clash配置proxy-providers实现自由搭配自建及机场节点]]
++ [[https://gist.github.com/ricky9w/31fffc1b6eadadba2603f323dc92bebf][Clash config using proxy-providers and rule-providers]]
++ [[https://proxy-provider-converter.vercel.app/][Proxy Provider Converter]]

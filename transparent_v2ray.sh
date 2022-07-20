@@ -1,8 +1,8 @@
 #!/bin/bash
 
 FILE_CONFIG="/etc/transparent-v2ray/config.json"
-FILE_GEOIP="/usr/local/bin/geoip.dat"
-FILE_GEOSITE="/usr/local/bin/geosite.dat"
+FILE_V2RAY_GEOIP="/usr/local/bin/geoip.dat"
+FILE_V2RAY_GEOSITE="/usr/local/bin/geosite.dat"
 
 readonly IPV4_RESERVED_IPADDRS=(
     0.0.0.0/8
@@ -73,13 +73,13 @@ check_dependencies() {
     done
 }
 
-update_geodb() {
+update_v2ray_geodb() {
     echo "Start update geodb"
     wget https://github.com/v2ray/geoip/raw/release/geoip.dat -O /tmp/geoip.dat || log_error "failed to download geoip"
-    cp -f /tmp/geoip.dat $FILE_GEOIP
+    cp -f /tmp/geoip.dat $FILE_V2RAY_GEOIP
 
     wget https://github.com/v2fly/domain-list-community/raw/release/dlc.dat -O /tmp/geosite.dat || log_error "failed to download geosite"
-    cp -f /tmp/geosite.dat  $FILE_GEOSITE
+    cp -f /tmp/geosite.dat  $FILE_V2RAY_GEOSITE
 }
 
 reroute_ip_list() {
@@ -156,7 +156,7 @@ stop_transparent_proxy() {
 }
 
 nslookup_domain() {
-    IP=`nslookup $1|ag Address|awk 'END {print}'|awk -F': ' '{print $2}'`
+    IP=`nslookup $1|grep Address|awk 'END {print}'|awk -F': ' '{print $2}'`
     if [ $? != "0" ]; then
         log_error "domain nslookup failed: $1"
     fi
@@ -193,6 +193,6 @@ case "$1" in
     start) check_environment && start_transparent_proxy;;
     stop) stop_transparent_proxy;;
     restart) stop_transparent_proxy && start_transparent_proxy;;
-    update-geodb) update_geodb;;
+    update-v2ray-geodb) update_v2ray_geodb;;
     *) log_info "Unknown command: $1";;
 esac

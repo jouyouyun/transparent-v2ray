@@ -1,0 +1,14 @@
+[Unit]
+Description=Clash Service
+Documentation=https://github.com/Dreamacro/clash
+After=network.target nss-lookup.target
+
+[Service]
+LimitNPROC=500
+LimitNOFILE=1000000
+ExecStart=/usr/local/bin/clash -d /usr/local/etc/clash -f /usr/local/etc/clash/%i.yaml
+Restart=on-failure
+RestartPreventExitStatus=23
+
+[Install]
+WantedBy=multi-user.target
